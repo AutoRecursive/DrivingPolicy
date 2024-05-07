@@ -75,7 +75,7 @@ class BicycleEnv(gym.Env):
         if self.goal is None:
             # 通过动态采样获取可达目标状态
             max_steps = self.max_steps  # 每个采样轨迹的最大步数
-            goal_state = self.sample_goal_state(max_steps)
+            goal_state = self.sample_goal_state(10)
             self.goal = goal_state
 
         observation = {
@@ -129,9 +129,13 @@ class BicycleEnv(gym.Env):
         self.state_history.append(self.state)
 
         self.steps += 1
-        terminated = self.steps >= self.max_steps or reward > -self.dt
+        terminated = self.steps >= self.max_steps or reward > -0.12
         truncated = terminated  # 在这个例子中,我们将 truncated 设置为与 terminated 相同的值
 
+        if terminated:
+            for i, t  in enumerate(self.reward_func.tolerances):
+                self.reward_func.tolerances[i] = (1.0 - 1e-3) *  self.reward_func.tolerances[i]
+                self.reward_func.tolerances[i] = max(0.1, self.reward_func.tolerances[i])
         observation = {
             'observation': self.state,
             'desired_goal': self.goal,
@@ -140,7 +144,8 @@ class BicycleEnv(gym.Env):
         # 创建信息字典
         info = {
             'steps': self.steps,
-            'state_history': self.state_history
+            'state_history': self.state_history,
+            'is_success': reward > 0
         }
 
         return observation, reward, terminated, truncated, info
@@ -155,7 +160,7 @@ class BicycleEnv(gym.Env):
 
         # 绘制自行车的当前位置
         self.ax.plot(self.state[0], self.state[1], 'ro')
-
+        self.ax.scatter(self.goal[0], self.goal[1])
         # 获取当前状态下自行车边界框的顶点坐标
         x_corners, y_corners = self._get_bicycle_bbox(self.state)
 
@@ -189,8 +194,8 @@ class BicycleEnv(gym.Env):
         x, y, nx, ny, _, _ = state
 
         # 计算后轴中心相对于自行车几何中心的偏移量
-        dx = -self.H * 3 / 4 * nx
-        dy = -self.H * 3 / 4 * ny
+        dx = -self.H * 1 / 4 * nx
+        dy = -self.H * 1 / 4 * ny
 
         # 计算自行车边界框的四个顶点坐标
         x_corners = jnp.array([
