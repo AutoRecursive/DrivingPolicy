@@ -4,8 +4,8 @@ import numpy as np
 class NaiveReward:
     def __init__(self, horizon, dt):
         # 在这里初始化奖励函数所需f的参数或属性
-        self.tolerances = [5, 5, 1.0, 0.1, 0.1]
-        self.weights = [1, 1, 0.2, 0.2, 0.1]
+        self.tolerances = [2, 2,  0.1, 0.1, 1.0]
+        self.weights = [1, 1, 0., 0., 1]
 
         self.horizon = horizon
         self.dt = dt
@@ -22,11 +22,11 @@ class NaiveReward:
         # distance = np.sqrt(dx**2 + dy**2 + dnx**2 + dny**2 + dv**2)
 
         # # 检查是否达到目标状态
-        # reached_goal = (dx <= self.tolerances[0]) & (
-        #     dy <= self.tolerances[1])
+        reached_goal = (dx <= self.tolerances[0]) & (
+            dy <= self.tolerances[1]) & (dv <= self.tolerances[4])
 
         # # 计算奖励
-        # reward = np.where(reached_goal, self.dt * self.horizon, -self.dt)
-        # # reward = -distance * self.dt
-        
-        return -np.power(np.dot(np.abs(next_state - goal_state), self.weights), 0.5)
+        reward = np.where(reached_goal, self.dt * self.horizon, -self.dt)
+        # reward = -distance * self.dt
+        return reward
+

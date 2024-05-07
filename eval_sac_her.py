@@ -1,4 +1,3 @@
-import gym
 import numpy as np
 from stable_baselines3 import SAC
 from bicycle_env.bicycle_env import BicycleEnv
@@ -7,7 +6,7 @@ from bicycle_env.bicycle_env import BicycleEnv
 env = BicycleEnv()
 
 # 加载训练好的模型
-model = SAC.load("logs/driver_10000_steps", env=env)
+model = SAC.load("logs/driver_20000_steps", env=env)
 
 # 设置测试参数
 num_episodes = 10

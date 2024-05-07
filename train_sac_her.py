@@ -25,15 +25,16 @@ except:
         goal_selection_strategy="future",
       ),
       verbose=1,
-      buffer_size=int(1e3),
+      buffer_size=int(1e6),
       learning_rate=1e-3,
       gamma=0.95,
-      batch_size=256,
+      batch_size=128,
       policy_kwargs=dict(net_arch=[512, 512, 512]),
+      gradient_steps=1,
   )
 
 
-checkpoint_callback = CheckpointCallback(save_freq=10000, save_path='./logs/',
+checkpoint_callback = CheckpointCallback(save_freq=5000, save_path='./logs/',
                                          name_prefix='driver')
 
 model.learn(int(1e5), log_interval=10, callback=checkpoint_callback)

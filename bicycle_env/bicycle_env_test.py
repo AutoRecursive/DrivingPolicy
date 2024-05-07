@@ -1,6 +1,6 @@
-import jax.numpy as jnp
 import matplotlib.pyplot as plt
 from bicycle_env import BicycleEnv
+import jax.numpy as jnp
 
 # 创建自行车环境
 env = BicycleEnv()

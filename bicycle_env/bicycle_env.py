@@ -11,6 +11,7 @@ from .naive_reward import NaiveReward
 class BicycleEnv(gym.Env):
     def __init__(self):
         super(BicycleEnv, self).__init__()
+        self.a_range = [-4, 2]
 
         # 定义观测空间 s=[x,y,nx,ny,v,delta]
         self.observation_space = spaces.Dict(
@@ -31,8 +32,8 @@ class BicycleEnv(gym.Env):
         )
 
         # 定义动作空间
-        self.action_space = spaces.Box(low=np.array(jnp.array([-4, -1.0])),
-                                       high=np.array(jnp.array([2, 1.0])),
+        self.action_space = spaces.Box(low=np.array(jnp.array([self.a_range[0], -1.0])),
+                                       high=np.array(jnp.array([self.a_range[1], 1.0])),
                                        dtype=np.float32)
 
         # 初始化状态
@@ -46,6 +47,8 @@ class BicycleEnv(gym.Env):
         self.H = 5.0   # 自行车长度
         self.fig, self.ax = plt.subplots()
         self.patch = None
+        self.goal_patch = None
+
         self.max_steps = 20
 
         self.reward_func = NaiveReward(self.max_steps, self.dt)
@@ -72,11 +75,7 @@ class BicycleEnv(gym.Env):
         self.state_history = [self.state]
         self.steps = 0
 
-        if self.goal is None:
-            # 通过动态采样获取可达目标状态
-            max_steps = self.max_steps  # 每个采样轨迹的最大步数
-            goal_state = self.sample_goal_state(10)
-            self.goal = goal_state
+        self.goal =  self.inference_goal_state()
 
         observation = {
             'observation': self.state,
@@ -101,6 +100,31 @@ class BicycleEnv(gym.Env):
             next_state = self.simulate_step(state, action)  # 使用模拟步骤更新状态
             state = next_state
         return state[:5]  # 返回目标状态的前5个分量
+    
+    def inference_goal_state(self):
+        horizon = self.max_steps * self.dt / 2
+        
+        # 计算速度范围
+        v_min = max(0., self.state[4] + horizon * self.a_range[0])
+        v_max = self.state[4] + horizon * self.a_range[1]
+        v_range = [v_min, v_max]
+        v_l_range = [-1, 1]
+        
+        # 计算位置范围
+        x_min = self.state[0] + v_min * horizon
+        x_max = self.state[0] + v_max * horizon
+        y_min = self.state[1] + v_l_range[0] * horizon
+        y_max = self.state[1] + v_l_range[1] * horizon
+        
+        # 创建目标状态范围
+        goal_low = jnp.array([x_min, y_min, 1, 0, v_min])
+        goal_high = jnp.array([x_max, y_max, 1, 0, v_max])
+        
+        # 在目标状态范围内随机选择一个目标状态
+        goal_state = self.np_random.uniform(low=goal_low, high=goal_high)
+        
+        return goal_state
+
 
     def simulate_step(self, state, action):
         # 根据当前状态和动作计算下一个状态
@@ -108,6 +132,7 @@ class BicycleEnv(gym.Env):
 
         # 更新状态(使用简化的自行车模型动力学方程)
         x, y, nx, ny, v, delta = state
+        v = max(0., v)
         theta = jnp.arctan2(ny, nx)
         x += v * nx * self.dt
         y += v * ny * self.dt
@@ -129,13 +154,11 @@ class BicycleEnv(gym.Env):
         self.state_history.append(self.state)
 
         self.steps += 1
-        terminated = self.steps >= self.max_steps or reward > -0.12
+        is_success = reward > 0
+        terminated = self.steps >= self.max_steps or is_success
         truncated = terminated  # 在这个例子中,我们将 truncated 设置为与 terminated 相同的值
 
-        if terminated:
-            for i, t  in enumerate(self.reward_func.tolerances):
-                self.reward_func.tolerances[i] = (1.0 - 1e-3) *  self.reward_func.tolerances[i]
-                self.reward_func.tolerances[i] = max(0.1, self.reward_func.tolerances[i])
+      
         observation = {
             'observation': self.state,
             'desired_goal': self.goal,
@@ -143,10 +166,14 @@ class BicycleEnv(gym.Env):
         }
         # 创建信息字典
         info = {
+            'is_success': is_success,  # 是否成功到达目标
             'steps': self.steps,
             'state_history': self.state_history,
-            'is_success': reward > 0
         }
+        if terminated:
+            for i, t  in enumerate(self.reward_func.tolerances):
+                self.reward_func.tolerances[i] = (1.0 - 1e-3) *  self.reward_func.tolerances[i]
+                self.reward_func.tolerances[i] = max(0.1, self.reward_func.tolerances[i])
 
         return observation, reward, terminated, truncated, info
 
@@ -174,6 +201,20 @@ class BicycleEnv(gym.Env):
             self.patch.set_xy(np.column_stack(
                 (np.asarray(x_corners), np.asarray(y_corners))))
             self.ax.add_patch(self.patch)
+        
+
+        goal_x_corners, goal_y_corners = self._get_bicycle_bbox(self.goal)
+
+        # 如果边界框不存在,则创建一个新的边界框
+        if self.goal_patch is None:
+            self.goal_patch = patches.Polygon(xy=np.column_stack((np.asarray(goal_x_corners), np.asarray(
+                goal_y_corners))), closed=True, edgecolor='b', facecolor='b', alpha=0.3)
+            self.ax.add_patch(self.goal_patch)
+        else:
+            # 如果边界框已存在,则更新其顶点坐标
+            self.goal_patch.set_xy(np.column_stack(
+                (np.asarray(goal_x_corners), np.asarray(goal_y_corners))))
+            self.ax.add_patch(self.goal_patch)
 
         # 设置合适的xlim和ylim
         max_range = max(
@@ -191,7 +232,7 @@ class BicycleEnv(gym.Env):
         plt.pause(0.001)
 
     def _get_bicycle_bbox(self, state):
-        x, y, nx, ny, _, _ = state
+        x, y, nx, ny = state[:4]
 
         # 计算后轴中心相对于自行车几何中心的偏移量
         dx = -self.H * 1 / 4 * nx
