@@ -4,9 +4,9 @@ from bicycle_env.bicycle_env import BicycleEnv
 
 # 创建 BicycleEnv 环境
 env = BicycleEnv()
-
+# env.reward_func.tolerances = [0.5, 0.5, 0.1, 0.1, 1.0]
 # 加载训练好的模型
-model = SAC.load("logs/driver_20000_steps", env=env)
+model = SAC.load("logs/driver_10000_steps", env=env)
 
 # 设置测试参数
 num_episodes = 10

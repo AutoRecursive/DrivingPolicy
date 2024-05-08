@@ -13,8 +13,10 @@ n_sampled_goal = 4
 env = BicycleEnv()
 
 try:
-  model = SAC.load("driver", env=env)
+  model = SAC.load("logs/driver_100000_steps", env=env)
+  print("Model loaded successfully.")
 except:
+  print("Model not found. Training new model.")
   # SAC hyperparams:
   model = SAC(
       "MultiInputPolicy",

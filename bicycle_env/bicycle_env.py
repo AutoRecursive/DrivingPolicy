@@ -170,10 +170,10 @@ class BicycleEnv(gym.Env):
             'steps': self.steps,
             'state_history': self.state_history,
         }
-        if terminated:
-            for i, t  in enumerate(self.reward_func.tolerances):
-                self.reward_func.tolerances[i] = (1.0 - 1e-3) *  self.reward_func.tolerances[i]
-                self.reward_func.tolerances[i] = max(0.1, self.reward_func.tolerances[i])
+        # if terminated:
+        #     for i, t  in enumerate(self.reward_func.tolerances):
+        #         self.reward_func.tolerances[i] = (1.0 - 1e-3) *  self.reward_func.tolerances[i]
+        #         self.reward_func.tolerances[i] = max(0.1, self.reward_func.tolerances[i])
 
         return observation, reward, terminated, truncated, info
 

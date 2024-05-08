@@ -4,7 +4,7 @@ import numpy as np
 class NaiveReward:
     def __init__(self, horizon, dt):
         # 在这里初始化奖励函数所需f的参数或属性
-        self.tolerances = [2, 2,  0.1, 0.1, 1.0]
+        self.tolerances = [0.5, 0.5,  0.1, 0.1, 1.0]
         self.weights = [1, 1, 0., 0., 1]
 
         self.horizon = horizon
@@ -24,9 +24,8 @@ class NaiveReward:
         # # 检查是否达到目标状态
         reached_goal = (dx <= self.tolerances[0]) & (
             dy <= self.tolerances[1]) & (dv <= self.tolerances[4])
-
         # # 计算奖励
-        reward = np.where(reached_goal, self.dt * self.horizon, -self.dt)
+        reward = np.where(reached_goal, self.dt *
+                          self.horizon, -self.dt * 1 if isinstance(action, dict) else -action[..., 1]**2 * self.dt)
         # reward = -distance * self.dt
         return reward
-
