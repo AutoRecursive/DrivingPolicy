@@ -9,7 +9,7 @@ from stable_baselines3.common.noise import NormalActionNoise
 from bicycle_env.bicycle_env import BicycleEnv
 
 # Create 4 artificial transitions per real transition
-n_sampled_goal = 4
+n_sampled_goal = 10
 env = BicycleEnv()
 
 try:
@@ -30,8 +30,8 @@ except:
       buffer_size=int(1e6),
       learning_rate=1e-3,
       gamma=0.95,
-      batch_size=128,
-      policy_kwargs=dict(net_arch=[512, 512, 512]),
+      batch_size=256,
+      policy_kwargs=dict(net_arch=[64, 64]),
       gradient_steps=1,
   )
 

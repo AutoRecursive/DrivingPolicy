@@ -1,2 +1,4 @@
 **/__pycache__
 **/logs
+trained_model.zip
+trajectory_plots/**
